@@ -1,6 +1,6 @@
-# 🏨 Hotel Reputation Intelligence — n8n Automation
+# 🏨 Hotel Reputation Intelligence via n8n Automation
 
-> An AI-powered self-hosted n8n workflow that monitors hotel reviews across Google Maps, TripAdvisor, Booking.com, and the web — classifies sentiment in 4 languages, drafts multilingual responses, and delivers real-time Slack alerts. Built for $0/month on free tiers.
+> An AI-powered self-hosted n8n workflow that monitors hotel reviews across Google Maps, TripAdvisor, Booking.com, and the web that classifies sentiment in 4 languages, drafts multilingual responses, and delivers real-time Slack alerts. Built for $0/month on free tiers.
 
 ![n8n](https://img.shields.io/badge/n8n-self--hosted-orange)
 ![Groq](https://img.shields.io/badge/LLM-Groq%20LLaMA%203.1-blue)
