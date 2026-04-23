@@ -1,0 +1,2558 @@
+{
+  "name": "Hotel Reputation Intelligence",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -736,
+        -448
+      ],
+      "id": "d41c71ad-db6e-4822-a707-6b33525355d1",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1XhZ6H2ujFIT7wAtPZxToZoQpEdqeB3zVS3_ywO_S2bc",
+          "mode": "list",
+          "cachedResultName": "Hotel Reputation Intelligence",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XhZ6H2ujFIT7wAtPZxToZoQpEdqeB3zVS3_ywO_S2bc/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "hotels",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XhZ6H2ujFIT7wAtPZxToZoQpEdqeB3zVS3_ywO_S2bc/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -544,
+        -448
+      ],
+      "id": "f6bc86ef-ac07-4705-b7c0-523b1b9dfc78",
+      "name": "Read Hotels",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_SHEET_ID",
+          "name": "Google Sheets account name"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "fbef49ca-9417-4429-bc08-3e8057dd3d00",
+              "leftValue": "={{ $json.active }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -368,
+        -448
+      ],
+      "id": "0b26610e-3bdf-4ebe-9ba6-40517a0b1f3c",
+      "name": "If Active?"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -144,
+        144
+      ],
+      "id": "0c6c375a-c1e9-47b8-a8bb-c6a088272fbb",
+      "name": "Inactive Hotels"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f9f3a6b2-4cd1-4d72-9e59-ea1c54ebcaf1",
+              "leftValue": "={{ $json.place_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -128,
+        -160
+      ],
+      "id": "710dad6b-020a-4461-9808-87c4fa1ae17f",
+      "name": "Has Place ID?"
+    },
+    {
+      "parameters": {
+        "url": "https://serpapi.com/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "engine",
+              "value": "google_maps"
+            },
+            {
+              "name": "q",
+              "value": "={{ $json.hotel_name + \" \" + $json.city + \" Tunisia\" }}"
+            },
+            {
+              "name": "type",
+              "value": "search"
+            },
+            {
+              "name": "api_key",
+              "value": "YOUR_SERPAPI_KEY"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        16,
+        -64
+      ],
+      "id": "2cfdfb10-0fb9-49b6-bd71-03a9487f2cc8",
+      "name": "Lookup Place ID"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a7808593-1d7d-4c60-b285-6c67f8aad048",
+              "name": "place_id",
+              "value": "={{ $json.place_results.place_id }}",
+              "type": "string"
+            },
+            {
+              "id": "4e4fc713-bd9e-4294-bb08-473e3a73d3a3",
+              "name": "hotel_name",
+              "value": "={{ $('Read Hotels').item.json.hotel_name }}",
+              "type": "string"
+            },
+            {
+              "id": "b90e7b69-5759-4488-8e88-a91ae29cbb2b",
+              "name": "row_number",
+              "value": "={{ $('Read Hotels').item.json.row_number }}",
+              "type": "string"
+            },
+            {
+              "id": "33408ec6-1fbd-4ed2-9537-9780e2ac9acb",
+              "name": "confidence_ok",
+              "value": "={{ $json.place_results.title.toLowerCase().split(' ').some(word => word.length > 3 && $('Read Hotels').item.json.hotel_name.toLowerCase().includes(word)) }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        160,
+        -64
+      ],
+      "id": "33903dd1-bb42-465c-a8ca-e1698c62caa1",
+      "name": "Extract Place ID"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1XhZ6H2ujFIT7wAtPZxToZoQpEdqeB3zVS3_ywO_S2bc",
+          "mode": "list",
+          "cachedResultName": "Hotel Reputation Intelligence",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XhZ6H2ujFIT7wAtPZxToZoQpEdqeB3zVS3_ywO_S2bc/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "hotels",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XhZ6H2ujFIT7wAtPZxToZoQpEdqeB3zVS3_ywO_S2bc/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "row_number": "={{ $json.row_number }}",
+            "place_id": "={{ $json.place_id }}"
+          },
+          "matchingColumns": [
+            "row_number"
+          ],
+          "schema": [
+            {
+              "id": "hotel_name",
+              "displayName": "hotel_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "city",
+              "displayName": "city",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "language",
+              "displayName": "language",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "active",
+              "displayName": "active",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "place_id",
+              "displayName": "place_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tripadvisor_id",
+              "displayName": "tripadvisor_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "booking_url",
+              "displayName": "booking_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tripadvisor_name",
+              "displayName": "tripadvisor_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        512,
+        -64
+      ],
+      "id": "1256f229-1f01-4513-a4d8-50a1055e3459",
+      "name": "Save Place ID",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_SHEET_ID",
+          "name": "Google Sheets account name"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://serpapi.com/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "engine",
+              "value": "google_maps_reviews"
+            },
+            {
+              "name": "place_id",
+              "value": "={{ $json.place_id }}"
+            },
+            {
+              "name": "sort_by",
+              "value": "newestFirst"
+            },
+            {
+              "name": "api_key",
+              "value": "YOUR_SERPAPI_KEY"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        880,
+        -176
+      ],
+      "id": "b0548430-23cf-45a6-99ff-e9305ffe3b4d",
+      "name": "Fetch Google Reviews"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6e54d223-0a34-4f1b-afa8-d85635558c79",
+              "name": "place_id",
+              "value": "={{ $('Extract Place ID').item.json.place_id }}",
+              "type": "string"
+            },
+            {
+              "id": "44567cdd-26b5-4f8f-a0e4-5b9e90b165d8",
+              "name": "hotel_name",
+              "value": "={{ $('Extract Place ID').item.json.hotel_name }}",
+              "type": "string"
+            },
+            {
+              "id": "e84a9bad-e3b7-4c5a-9f7d-a904dad140aa",
+              "name": "language",
+              "value": "={{ $('Read Hotels').item.json.language }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        672,
+        -64
+      ],
+      "id": "e7efd87c-b573-4aa0-b7f9-a0b0e707baf2",
+      "name": "Prepare Google Fetch"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "reviews",
+        "include": "allOtherFields",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1056,
+        -176
+      ],
+      "id": "4b7fa5b4-999b-434e-9ddd-ca677fd9ab6b",
+      "name": "Split Google Reviews"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "70c393ee-ab3f-486d-bde7-1dc6b8024f58",
+              "leftValue": "={{ $json.confidence_ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        320,
+        -64
+      ],
+      "id": "3b373ab9-1fd1-4f15-9a12-24c41a0eae34",
+      "name": "Confidence Check Google"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        512,
+        112
+      ],
+      "id": "e7b234db-373e-4980-a175-936cca114d6b",
+      "name": "Hotel Not Found"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "7b86add8-8ef0-4f7c-adab-c44c16295ed4",
+              "leftValue": "={{ $json.tripadvisor_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -144,
+        -512
+      ],
+      "id": "7a0a8f89-b085-47f8-8f36-6624d60a5e74",
+      "name": "Has TripAdvisor ID?"
+    },
+    {
+      "parameters": {
+        "url": "https://serpapi.com/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "engine",
+              "value": "tripadvisor"
+            },
+            {
+              "name": "q",
+              "value": "={{ $json.hotel_name + \" \" + $json.city + \" Tunisia hotel\" }}"
+            },
+            {
+              "name": "type",
+              "value": "search"
+            },
+            {
+              "name": "api_key",
+              "value": "YOUR_SERPAPI_KEY"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        48,
+        -336
+      ],
+      "id": "2baffe54-f0de-40a9-8a08-2b20909c134b",
+      "name": "Lookup TripAdvisor ID"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1146eede-e9cf-4e79-a271-39b90475ffc6",
+              "name": "tripadvisor_id",
+              "value": "={{ $json.places[0].place_id }}",
+              "type": "string"
+            },
+            {
+              "id": "43c0f8df-64a1-4047-b251-2ca7bd5dcafd",
+              "name": "confidence_score",
+              "value": "={{ $json.places[0].title.toLowerCase().split(' ').some(word => word.length > 3 && $('Read Hotels').item.json.hotel_name.toLowerCase().includes(word)) }}",
+              "type": "string"
+            },
+            {
+              "id": "dac75345-7117-461c-8bc5-b1e7b04c8b4d",
+              "name": "hotel_name",
+              "value": "={{ $json.places[0].title }}",
+              "type": "string"
+            },
+            {
+              "id": "61ffcf62-b121-4889-8e67-570ecce37120",
+              "name": "row_number",
+              "value": "={{ $('Read Hotels').item.json.row_number }}",
+              "type": "string"
+            },
+            {
+              "id": "1ebf60eb-15a3-45d6-af39-0d3c5f58d8c0",
+              "name": "language",
+              "value": "={{ $('Read Hotels').item.json.language }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        -336
+      ],
+      "id": "5138011d-f355-4e0f-bbcd-a1b9482a1455",
+      "name": "Extract TripAdvisor ID"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "4a49d6b8-a6e2-47e7-82b3-7314e6c9d356",
+              "leftValue": "={{ $json.confidence_score }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        384,
+        -336
+      ],
+      "id": "9410d99a-f3e6-4e28-a687-ec866374b3ff",
+      "name": "Confidence Check TripAdvisor"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        544,
+        -256
+      ],
+      "id": "e55d8d44-b89b-4be8-9367-7fe1c1ffe3e9",
+      "name": "Hotel Not Found TA"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1XhZ6H2ujFIT7wAtPZxToZoQpEdqeB3zVS3_ywO_S2bc",
+          "mode": "list",
+          "cachedResultName": "Hotel Reputation Intelligence",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XhZ6H2ujFIT7wAtPZxToZoQpEdqeB3zVS3_ywO_S2bc/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "hotels",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XhZ6H2ujFIT7wAtPZxToZoQpEdqeB3zVS3_ywO_S2bc/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "row_number": "={{ $json.row_number }}",
+            "tripadvisor_id": "={{ $json.tripadvisor_id }}"
+          },
+          "matchingColumns": [
+            "row_number"
+          ],
+          "schema": [
+            {
+              "id": "hotel_name",
+              "displayName": "hotel_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "city",
+              "displayName": "city",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "language",
+              "displayName": "language",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "active",
+              "displayName": "active",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "place_id",
+              "displayName": "place_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "tripadvisor_id",
+              "displayName": "tripadvisor_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "booking_url",
+              "displayName": "booking_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tripadvisor_name",
+              "displayName": "tripadvisor_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        544,
+        -400
+      ],
+      "id": "88cb8a90-b2d6-464d-8020-1a1e699ed058",
+      "name": "Save TripAdvisor ID",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_SHEET_ID",
+          "name": "Google Sheets account name"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6e54d223-0a34-4f1b-afa8-d85635558c79",
+              "name": "tripadvisor_id",
+              "value": "={{ $('Extract TripAdvisor ID').item.json.tripadvisor_id }}",
+              "type": "string"
+            },
+            {
+              "id": "44567cdd-26b5-4f8f-a0e4-5b9e90b165d8",
+              "name": "hotel_name",
+              "value": "={{ $('Extract TripAdvisor ID').item.json.hotel_name }}",
+              "type": "string"
+            },
+            {
+              "id": "e84a9bad-e3b7-4c5a-9f7d-a904dad140aa",
+              "name": "language",
+              "value": "={{ $('Read Hotels').item.json.language }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        704,
+        -400
+      ],
+      "id": "4e080ec2-ef26-40e6-95a4-f7d3b02b1e4e",
+      "name": "Prepare TripAdvisor Fetch"
+    },
+    {
+      "parameters": {
+        "url": "https://serpapi.com/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "engine",
+              "value": "tripadvisor_reviews"
+            },
+            {
+              "name": "place_id",
+              "value": "={{ $json.tripadvisor_id }}"
+            },
+            {
+              "name": "api_key",
+              "value": "YOUR_SERPAPI_KEY"
+            },
+            {
+              "name": "language",
+              "value": "={{ $json.language }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        880,
+        -528
+      ],
+      "id": "925529f6-99a1-49fd-9b92-9b2ea026c940",
+      "name": "Fetch TripAdvisor Reviews"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "reviews",
+        "include": "allOtherFields",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1056,
+        -528
+      ],
+      "id": "72c62886-7715-4527-9561-4e342a622b8d",
+      "name": "Split TripAdvisor Reviews"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.tavily.com/search",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"api_key\": \"YOUR_TAVILY_KEY\",\n  \"query\": \"={{ $json.hotel_name + ' ' + $json.city + ' guest reviews rated' }}\",\n  \"search_depth\": \"advanced\",\n  \"max_results\": 10,\n  \"include_raw_content\": true,\n  \"include_domains\": [\"booking.com\", \"tripadvisor.com\"]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -128,
+        -784
+      ],
+      "id": "5325d52f-b595-421e-a127-459102850576",
+      "name": "Fetch Review Site Mentions"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.tavily.com/search",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"api_key\": \"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\",\n  \"query\": \"={{ $json.hotel_name + ' ' + $json.city + ' avis تقييم review 2025' }}\",\n  \"search_depth\": \"advanced\",\n  \"max_results\": 10,\n  \"include_domains\": [\"booking.com\", \"tripadvisor.com\"]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -112,
+        -976
+      ],
+      "id": "3521ea3f-6453-49b1-8797-237a141467ad",
+      "name": "Fetch General Mentions"
+    },
+    {
+      "parameters": {
+        "jsCode": "const results = $json.results || [];\nconst hotelName = $('Read Hotels').item.json.hotel_name;\nconst parsed = [];\nconst seenContent = new Set();\n\n// Only exact Mövenpick Du Lac Tunis URLs\nconst correctHotelUrls = [\n  'movenpick-du-lac-tunis',\n  'Movenpick_Hotel_Du_Lac_Tunis'\n];\n\n// Explicitly wrong hotels to exclude\nconst wrongHotelUrls = [\n  'studio-cosy-au-lac',\n  'Hotel_Lac_Leman',\n  'HotelsList',\n  'Hotel_Feature',\n  'movenpick-gammarth'\n];\n\nresults.forEach((r, i) => {\n  const content = r.content || '';\n  const url = r.url || '';\n\n  // Must be a review page\n  const isActualReview = \n    url.includes('booking.com/reviews') ||\n    url.includes('booking.com/reviewlist') ||\n    url.includes('tripadvisor.com/Hotel_Review-') ||\n    url.includes('tripadvisor.com/ShowUserReviews');\n\n  if (!isActualReview) return;\n  if (content.length < 20) return;\n\n  // Must be correct hotel URL\n  const isCorrectHotel = correctHotelUrls.some(k => url.includes(k));\n  if (!isCorrectHotel) return;\n\n  // Must not be wrong hotel\n  const isWrongHotel = wrongHotelUrls.some(k => url.includes(k));\n  if (isWrongHotel) return;\n\n  let platform = 'Web';\n  if (url.includes('booking.com')) platform = 'Booking.com';\n  else if (url.includes('tripadvisor.com')) platform = 'TripAdvisor Web';\n\n  const blocks = content\n    .split(/(?=Stayed in [A-Z][a-z]+ \\d{4})/g)\n    .filter(b => b.trim().length > 20);\n\n  const blocksToProcess = blocks.length > 1 ? blocks : [content];\n\n  blocksToProcess.forEach((block, j) => {\n    const skipPatterns = [\n      'Start of dialog content',\n      'Each review score is between',\n      'How guest reviews work',\n      'Real guests. Real stays',\n      'Score breakdown',\n      'verified reviews',\n      'All content should be genuine',\n      'Booking.com property partners',\n      'Respect the privacy of others',\n      'opinions expressed in contributions',\n      'There are no comments available',\n      'no comments available'\n    ];\n    if (skipPatterns.some(p => block.includes(p))) return;\n\n    const ratingMatch = block.match(/\\b(10|[0-9]\\.[0-9])\\b/);\n    const rating = ratingMatch ? parseFloat(ratingMatch[1]) : null;\n\n    let reviewer = 'Anonymous';\n    const nameMatch1 = block.match(/^([A-Z][a-zA-Z\\s]{1,25})\\n\\s*[A-Z][a-z]+\\s*\\n\\s*\\d+ review/m);\n    const nameMatch2 = block.match(/Reviewed:.*?\\n\\s*([A-Z][a-zA-Z\\s]{1,25})\\n/);\n    const nameMatch3 = block.match(/\\n([A-Z][a-z]{2,15})\\n/);\n    if (nameMatch1) reviewer = nameMatch1[1].split('\\n')[0].trim();\n    else if (nameMatch2) reviewer = nameMatch2[1].split('\\n')[0].trim();\n    else if (nameMatch3) reviewer = nameMatch3[1].split('\\n')[0].trim();\n    reviewer = reviewer.replace(/\\n.*/s, '').replace(/\\s{2,}/g, ' ').trim();\n\n    const dateMatch = block.match(/Stayed in ([A-Z][a-z]+ \\d{4})/);\n    const reviewDate = dateMatch ? dateMatch[1] : (r.published_date || new Date().toISOString());\n\n    const quoteMatch = block.match(/\"([^\"]{10,})\"/g);\n    let reviewText = '';\n    if (quoteMatch) {\n      reviewText = quoteMatch.map(q => q.replace(/\"/g, '').trim()).join(' ');\n    }\n\n    if (!reviewText || reviewText.length < 10) {\n      const lines = block.split('\\n')\n        .map(l => l.trim())\n        .filter(l =>\n          l.length > 20 &&\n          !l.match(/^\\d+ reviews?$/) &&\n          !l.match(/^[A-Z][a-z]+$/) &&\n          !l.match(/^\\+/) &&\n          !l.match(/^Stayed in/) &&\n          !l.match(/^Reviewed:/) &&\n          !l.match(/^Submitted/) &&\n          !l.match(/^\\d+\\.\\s+/) &&\n          !l.includes('no comments available') &&\n          !l.includes('dialog content')\n        );\n      reviewText = lines.join(' ').substring(0, 600);\n    }\n\n    reviewText = reviewText\n      .replace(/^[A-Z][a-zA-Z\\s]+ \\d+ [Rr]eviews?\\s*/g, '')\n      .replace(/^\\d+ helpful votes?\\s*/g, '')\n      .replace(/^• Submitted from a mobile device\\s*/g, '')\n      .replace(/\\b\\d+ helpful votes?\\b/g, '')\n      .replace(/•\\s+[^•\\n]{1,50}(?=•|$)/g, '')\n      .replace(/\\+\\s+•[^\\n]+/g, '')\n      .replace(/✨/g, '')\n      .replace(/🌟/g, '')\n      .replace(/👌/g, '')\n      .replace(/\\[\\.\\.\\.\\]/g, '')\n      .replace(/\\d+\\.\\s+Hotel reviews homepage→.*/s, '')\n      .replace(/\\d+\\.\\s+Tunisia hotel reviews→.*/s, '')\n      .replace(/\\d+\\.\\s+Tunis hotel reviews→.*/s, '')\n      .replace(/Rue du Lac.*/s, '')\n      .replace(/See the hotel.*/s, '')\n      .replace(/Write a review.*/s, '')\n      .replace(/\\d+ helpful votes/g, '')\n      .replace(/\\s{2,}/g, ' ')\n      .trim()\n      .substring(0, 600);\n\n    // Skip meaningless review text\n    const meaninglessPatterns = [\n      /^\\w+\\s+\\d+\\s+[Rr]eviews?$/,\n      /^#ERROR!/,\n      /^[A-Z][a-z]+\\s+\\d+\\s+[A-Z][a-z]+$/\n    ];\n    if (meaninglessPatterns.some(p => p.test(reviewText.trim()))) return;\n\n    const finalSkip = [\n      'Start of dialog content',\n      'Each review score is between',\n      'no comments available',\n      'How guest reviews work',\n      'Real guests',\n      'All content should be genuine',\n      'Booking.com property partners',\n      'opinions expressed'\n    ];\n    if (finalSkip.some(p => reviewText.toLowerCase().includes(p.toLowerCase()))) return;\n    if (reviewText.length < 20) return;\n\n    // Content-based deduplication\n    const fingerprint = reviewText.substring(0, 80).toLowerCase().replace(/\\s+/g, '');\n    if (seenContent.has(fingerprint)) return;\n    seenContent.add(fingerprint);\n\n    parsed.push({\n      json: {\n        hotel_name: hotelName,\n        platform: platform,\n        review_text: reviewText,\n        reviewer: reviewer,\n        review_date: reviewDate,\n        google_rating: rating,\n        review_id: url + '_' + j,\n        source_url: url\n      }\n    });\n  });\n});\n\nreturn parsed.length > 0\n  ? parsed\n  : [{ json: { skipped: true, message: 'No review content found' } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1056,
+        -784
+      ],
+      "id": "cbb2763d-6110-4d59-adc7-c8f981c8c715",
+      "name": "Extract Review Site Mentions"
+    },
+    {
+      "parameters": {
+        "jsCode": "const results = $json.results || [];\nconst hotelName = $('Read Hotels').item.json.hotel_name;\nconst parsed = [];\nconst seenContent = new Set();\n\nconst correctHotelUrls = [\n  'movenpick-du-lac-tunis',\n  'Movenpick_Hotel_Du_Lac_Tunis'\n];\n\nconst wrongHotelUrls = [\n  'studio-cosy-au-lac',\n  'Hotel_Lac_Leman',\n  'HotelsList',\n  'Hotel_Feature',\n  'movenpick-gammarth'\n];\n\nresults.forEach((r, i) => {\n  const content = r.content || '';\n  const url = r.url || '';\n  if (content.length < 20) return;\n\n  let platform = 'Web';\n  if (url.includes('booking.com')) platform = 'Booking.com';\n  else if (url.includes('tripadvisor.com')) platform = 'TripAdvisor Web';\n  else if (url.includes('facebook.com')) platform = 'Facebook';\n  else if (url.includes('google.com')) platform = 'Google';\n\n  const isReviewPage =\n    url.includes('booking.com/reviews') ||\n    url.includes('booking.com/reviewlist') ||\n    url.includes('tripadvisor.com/Hotel_Review-') ||\n    url.includes('tripadvisor.com/ShowUserReviews');\n\n  if (isReviewPage) {\n    // Must be correct hotel\n    const isCorrectHotel = correctHotelUrls.some(k => url.includes(k));\n    if (!isCorrectHotel) return;\n    const isWrongHotel = wrongHotelUrls.some(k => url.includes(k));\n    if (isWrongHotel) return;\n\n    const skipPatterns = [\n      'Start of dialog content',\n      'Each review score is between',\n      'How guest reviews work',\n      'Real guests. Real stays',\n      'Score breakdown',\n      'verified reviews',\n      'All content should be genuine',\n      'Booking.com property partners',\n      'Respect the privacy of others',\n      'opinions expressed in contributions',\n      'There are no comments available',\n      'no comments available'\n    ];\n    if (skipPatterns.some(p => content.includes(p))) return;\n\n    const blocks = content\n      .split(/(?=Stayed in [A-Z][a-z]+ \\d{4})/g)\n      .filter(b => b.trim().length > 20);\n\n    const blocksToProcess = blocks.length > 1 ? blocks : [content];\n\n    blocksToProcess.forEach((block, j) => {\n      if (skipPatterns.some(p => block.includes(p))) return;\n\n      const ratingMatch = block.match(/\\b(10|[0-9]\\.[0-9])\\b/);\n      const rating = ratingMatch ? parseFloat(ratingMatch[1]) : null;\n\n      let reviewer = 'Anonymous';\n      const nameMatch1 = block.match(/^([A-Z][a-zA-Z\\s]{1,25})\\n\\s*[A-Z][a-z]+\\s*\\n\\s*\\d+ review/m);\n      const nameMatch2 = block.match(/Reviewed:.*?\\n\\s*([A-Z][a-zA-Z\\s]{1,25})\\n/);\n      const nameMatch3 = block.match(/\\n([A-Z][a-z]{2,15})\\n/);\n      if (nameMatch1) reviewer = nameMatch1[1].split('\\n')[0].trim();\n      else if (nameMatch2) reviewer = nameMatch2[1].split('\\n')[0].trim();\n      else if (nameMatch3) reviewer = nameMatch3[1].split('\\n')[0].trim();\n      reviewer = reviewer.replace(/\\n.*/s, '').replace(/\\s{2,}/g, ' ').trim();\n\n      const dateMatch = block.match(/Stayed in ([A-Z][a-z]+ \\d{4})/);\n      const reviewDate = dateMatch ? dateMatch[1] : (r.published_date || new Date().toISOString());\n\n      const quoteMatch = block.match(/\"([^\"]{10,})\"/g);\n      let reviewText = '';\n      if (quoteMatch) {\n        reviewText = quoteMatch.map(q => q.replace(/\"/g, '').trim()).join(' ');\n      }\n\n      if (!reviewText || reviewText.length < 10) {\n        const lines = block.split('\\n')\n          .map(l => l.trim())\n          .filter(l =>\n            l.length > 20 &&\n            !l.match(/^\\d+ reviews?$/) &&\n            !l.match(/^[A-Z][a-z]+$/) &&\n            !l.match(/^\\+/) &&\n            !l.match(/^Stayed in/) &&\n            !l.match(/^Reviewed:/) &&\n            !l.match(/^Submitted/) &&\n            !l.match(/^\\d+\\.\\s+/) &&\n            !l.includes('no comments available') &&\n            !l.includes('dialog content')\n          );\n        reviewText = lines.join(' ').substring(0, 600);\n      }\n\n      reviewText = reviewText\n        .replace(/^[A-Z][a-zA-Z\\s]+ \\d+ [Rr]eviews?\\s*/g, '')\n        .replace(/^\\d+ helpful votes?\\s*/g, '')\n        .replace(/^• Submitted from a mobile device\\s*/g, '')\n        .replace(/\\b\\d+ helpful votes?\\b/g, '')\n        .replace(/•\\s+[^•\\n]{1,50}(?=•|$)/g, '')\n        .replace(/\\+\\s+•[^\\n]+/g, '')\n        .replace(/✨/g, '')\n        .replace(/🌟/g, '')\n        .replace(/👌/g, '')\n        .replace(/\\[\\.\\.\\.\\]/g, '')\n        .replace(/\\d+\\.\\s+Hotel reviews homepage→.*/s, '')\n        .replace(/\\d+\\.\\s+Tunisia hotel reviews→.*/s, '')\n        .replace(/\\d+\\.\\s+Tunis hotel reviews→.*/s, '')\n        .replace(/Rue du Lac.*/s, '')\n        .replace(/See the hotel.*/s, '')\n        .replace(/Write a review.*/s, '')\n        .replace(/\\d+ helpful votes/g, '')\n        .replace(/\\s{2,}/g, ' ')\n        .trim()\n        .substring(0, 600);\n\n      // Skip meaningless text\n      const meaninglessPatterns = [\n        /^\\w+\\s+\\d+\\s+[Rr]eviews?$/,\n        /^#ERROR!/,\n        /^[A-Z][a-z]+\\s+\\d+\\s+[A-Z][a-z]+$/\n      ];\n      if (meaninglessPatterns.some(p => p.test(reviewText.trim()))) return;\n\n      const finalSkip = [\n        'Start of dialog content',\n        'Each review score is between',\n        'no comments available',\n        'How guest reviews work',\n        'Real guests',\n        'All content should be genuine',\n        'Booking.com property partners',\n        'opinions expressed'\n      ];\n      if (finalSkip.some(p => reviewText.toLowerCase().includes(p.toLowerCase()))) return;\n      if (reviewText.length < 20) return;\n\n      // Content deduplication\n      const fingerprint = reviewText.substring(0, 80).toLowerCase().replace(/\\s+/g, '');\n      if (seenContent.has(fingerprint)) return;\n      seenContent.add(fingerprint);\n\n      parsed.push({\n        json: {\n          hotel_name: hotelName,\n          platform: platform,\n          review_text: reviewText,\n          reviewer: reviewer,\n          review_date: reviewDate,\n          google_rating: rating,\n          review_id: url + '_' + j,\n          source_url: url\n        }\n      });\n    });\n\n  } else {\n    // Non-review page — web mention only\n    // Skip wrong hotel URLs\n    const isWrongHotel = wrongHotelUrls.some(k => url.includes(k));\n    if (isWrongHotel) return;\n\n    // Skip TripAdvisor list/feature pages\n    if (url.includes('HotelsList') || url.includes('Hotel_Feature')) return;\n\n    let reviewText = content\n      .replace(/\\[\\.\\.\\.\\]/g, '')\n      .replace(/\\s{2,}/g, ' ')\n      .trim()\n      .substring(0, 600);\n\n    if (reviewText.length < 20) return;\n\n    // Skip price/listing pages\n    const webSkip = [\n      'Lowest prices for your stay',\n      'Prices are provided by our partners',\n      'THE 10 BEST',\n      'Hotels with Bars',\n      'Luxury Family Hotels'\n    ];\n    if (webSkip.some(p => reviewText.includes(p))) return;\n\n    // Content deduplication\n    const fingerprint = reviewText.substring(0, 80).toLowerCase().replace(/\\s+/g, '');\n    if (seenContent.has(fingerprint)) return;\n    seenContent.add(fingerprint);\n\n    parsed.push({\n      json: {\n        hotel_name: hotelName,\n        platform: platform,\n        review_text: reviewText,\n        reviewer: 'Web Mention',\n        review_date: r.published_date || new Date().toISOString(),\n        google_rating: null,\n        review_id: url + '_' + i,\n        source_url: url\n      }\n    });\n  }\n});\n\nreturn parsed.length > 0\n  ? parsed\n  : [{ json: { skipped: true, message: 'No mentions found' } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        -976
+      ],
+      "id": "ea51475f-c7f1-45d0-8d65-7785f58a587b",
+      "name": "Extract General Mentions"
+    },
+    {
+      "parameters": {
+        "numberInputs": 4
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1392,
+        -512
+      ],
+      "id": "6c507c46-e3a4-4f62-8048-f9c82623e0a8",
+      "name": "Merge All Sources"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst results = [];\nconst seenFingerprints = new Set();\n\nconst validItems = items.filter(item => !item.json.skipped);\n\nif (validItems.length === 0) {\n  return [{ json: { skipped: true, message: 'No reviews after normalization' } }];\n}\n\nvalidItems.forEach((item, i) => {\n  const d = item.json;\n  const review = d.reviews || d;\n  const placeInfo = d.place_info || {};\n\n  const isGoogleOrTA = !!d.reviews || \n                       !!d.place_info || \n                       (d.platform === 'Google Maps') ||\n                       (d.platform === 'TripAdvisor');\n\n  let reviewText = '';\n  let reviewer = 'Anonymous';\n  let reviewDate = '';\n  let rating = null;\n  let hotelName = '';\n  let platform = '';\n  let reviewId = '';\n  let sourceUrl = '';\n\n  if (isGoogleOrTA) {\n    reviewText = review.snippet ||\n                 review.extracted_snippet?.original ||\n                 review.extracted_snippet?.translated ||\n                 review.text ||\n                 d.review_text || '';\n    reviewer = review.user?.name ||\n               review.username ||\n               d.reviewer ||\n               'Anonymous';\n    reviewDate = review.iso_date ||\n                 review.date ||\n                 review.published_date ||\n                 d.review_date || '';\n    rating = review.rating ||\n             d.rating ||\n             d.google_rating ||\n             null;\n    hotelName = d.hotel_name ||\n                placeInfo.title ||\n                $('Read Hotels').item.json.hotel_name ||\n                'Unknown';\n    platform = d.platform ||\n               (placeInfo.type === 'tripadvisor' ? 'TripAdvisor' : 'Google Maps');\n    reviewId = review.review_id ||\n               d.review_id ||\n               (hotelName + '_' + reviewer + '_' + reviewDate);\n    sourceUrl = d.source_url || '';\n  } else {\n    reviewText = d.review_text || '';\n    reviewer = d.reviewer || 'Anonymous';\n    reviewDate = d.review_date || '';\n    rating = d.google_rating || d.rating || null;\n    hotelName = d.hotel_name || $('Read Hotels').item.json.hotel_name || '';\n    platform = d.platform || 'Web';\n    reviewId = d.review_id || (hotelName + '_' + i);\n    sourceUrl = d.source_url || '';\n  }\n\n  // Skip empty or too short\n  if (!reviewText || reviewText.trim().length < 10) return;\n\n  // Skip Excel errors\n  if (reviewText.trim().startsWith('#ERROR')) return;\n\n  // Skip navigation/promotional content\n  const skipContent = [\n    'Low rates',\n    'Find cheaper',\n    \"We'll refund the difference\",\n    'Golfe of Tunis hotel reviews',\n    'Grand Tunis hotel reviews',\n    'Tunis Governorate hotel reviews'\n  ];\n  if (skipContent.some(p => reviewText.includes(p))) return;\n\n  // Clean reviewer name\n  reviewer = reviewer\n    .replace(/\\n.*/s, '')\n    .replace(/\\s{2,}/g, ' ')\n    .trim();\n\n  // Clean review text\n  reviewText = reviewText\n    .replace(/^•\\s*Submitted from a mobile device\\s*/g, '')\n    .replace(/\\s{2,}/g, ' ')\n    .trim()\n    .replace(/^\\d+\\.\\d+\\s+/, '')\n    .replace(/^\\d+\\s+/, '')\n    .trim();\n\n  // Skip if text is just hotel name repeated\n  const hotelNameLower = hotelName.toLowerCase();\n  const textLower = reviewText.toLowerCase().replace(/\\s+/g, ' ').trim();\n  if (textLower === hotelNameLower || \n      textLower === (hotelNameLower + ' ' + hotelNameLower) ||\n      textLower === (hotelNameLower + ' ' + hotelNameLower + ' ' + hotelNameLower)) return;\n\n  // Fix Excel serial date\n  if (reviewDate && String(reviewDate).match(/^\\d{5}\\.?\\d*$/)) {\n    const excelEpoch = new Date(1900, 0, 1);\n    reviewDate = new Date(\n      excelEpoch.getTime() + (parseFloat(reviewDate) - 2) * 86400000\n    ).toISOString().split('T')[0];\n  }\n\n  // Normalize rating to /5 scale\n  if (rating && parseFloat(rating) > 5) {\n    rating = (parseFloat(rating) / 2).toFixed(1);\n  }\n\n  // Content-based deduplication\n  const fingerprint = reviewText.substring(0, 100).toLowerCase().replace(/\\s+/g, '');\n  if (seenFingerprints.has(fingerprint)) return;\n  seenFingerprints.add(fingerprint);\n\n  results.push({\n    json: {\n      hotel_name: hotelName,\n      platform: platform,\n      reviewer: reviewer,\n      review_date: reviewDate,\n      review_text: reviewText,\n      rating: rating ? parseFloat(rating) : null,\n      review_id: String(reviewId),\n      source_url: sourceUrl\n    }\n  });\n});\n\nreturn results.length > 0\n  ? results\n  : [{ json: { skipped: true, message: 'No reviews after normalization' } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1552,
+        -480
+      ],
+      "id": "636b6e15-ed63-46d2-b384-b9279b9b6452",
+      "name": "Normalize Reviews"
+    },
+    {
+      "parameters": {
+        "jsCode": "const incoming = $('Normalize Reviews').all();\nconst logged = $('Read Logged IDs').all();\n\nconst existingIds = new Set(\n  logged\n    .map(item => String(item.json.review_id || '').trim())\n    .filter(Boolean)\n);\n\nconst newReviews = incoming.filter(item => {\n  if (item.json.skipped) return false;\n  const id = String(item.json.review_id || '').trim();\n  const text = item.json.review_text || '';\n  if (!text.trim()) return false;\n  const metadataPatterns = [\n    'Own or manage this property',\n    'Claim your listing',\n    'View prices for your travel dates',\n    'Updated 2026',\n    'Tripadvisor LLC makes no guarantees',\n    'version of our website'\n  ];\n  if (metadataPatterns.some(p => text.includes(p))) return false;\n  return id && !existingIds.has(id);\n});\n\nif (newReviews.length === 0) {\n  return [{ json: { skipped: true, message: 'No new reviews' } }];\n}\n\nreturn newReviews;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1728,
+        -480
+      ],
+      "id": "c5235c6a-d12c-4ff5-ab94-ebd6f3438b00",
+      "name": "Filter New Reviews Only"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1a3c2265-f23c-483b-b516-944ab3bbb719",
+              "leftValue": "={{ $json.skipped }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1904,
+        -480
+      ],
+      "id": "69535d9a-83b0-4e7d-baf5-c704c8bbd1ee",
+      "name": "Has New Reviews?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "llama-3.1-8b-instant"
+            },
+            {
+              "name": "messages",
+              "value": "={{ [{\n  \"role\": \"user\",\n  \"content\": \"You are a strict hotel review analyst. Respond with ONLY a valid JSON object, no markdown, no explanation.\\n\\nAnalyze this review and return:\\n- sentiment: positive / neutral / negative\\n- score: 1 to 5 (1=very negative, 2=negative, 3=mixed, 4=good, 5=excellent)\\n- key_issue: the main COMPLAINT in English as a short phrase. If there is NO complaint write empty string \\\"\\\"\\n- requires_response: true ONLY if score <= 3 OR sentiment is negative OR there is a real complaint. False for purely positive reviews.\\n\\nIMPORTANT: A positive review with no complaints must have requires_response=false and key_issue=\\\"\\\"\\n\\nPlatform: \" + $json.platform + \"\\nRating given by guest: \" + ($json.rating || 'not provided') + \"\\nReview: \" + $json.review_text\n}] }}"
+            }
+          ]
+        },
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 3000
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2016,
+        -352
+      ],
+      "id": "a42ddcad-edf4-4095-8c24-5847da91cd1a",
+      "name": "Classify Sentiment",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "3zvMWISr8glm7diG",
+          "name": "Bearer Auth account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const llmItems = $input.all();\nconst results = [];\n\nfor (let i = 0; i < llmItems.length; i++) {\n  const llmItem = llmItems[i];\n  const originalItem = $('Filter New Reviews Only').all()[i]?.json || {};\n\n  const raw = llmItem.json.choices[0].message.content;\n  const cleaned = raw.replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim();\n\n  let sentiment = {};\n  try {\n    sentiment = JSON.parse(cleaned);\n  } catch(e) {\n    sentiment = {\n      sentiment: 'unknown',\n      score: 0,\n      key_issue: 'Parse error',\n      requires_response: false\n    };\n  }\n\n  results.push({\n    json: {\n      hotel_name: originalItem.hotel_name,\n      platform: originalItem.platform,\n      reviewer: originalItem.reviewer,\n      review_date: originalItem.review_date,\n      review_text: originalItem.review_text,\n      rating: originalItem.rating,\n      review_id: originalItem.review_id,\n      source_url: originalItem.source_url,\n      sentiment: sentiment.sentiment,\n      llm_score: sentiment.score,\n      key_issue: sentiment.key_issue,\n      requires_response: sentiment.requires_response\n    }\n  });\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2160,
+        -352
+      ],
+      "id": "a6d8e3c9-42c6-4c79-b64c-4002f8252c79",
+      "name": "Extract Sentiment"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1XhZ6H2ujFIT7wAtPZxToZoQpEdqeB3zVS3_ywO_S2bc",
+          "mode": "list",
+          "cachedResultName": "Hotel Reputation Intelligence",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XhZ6H2ujFIT7wAtPZxToZoQpEdqeB3zVS3_ywO_S2bc/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 620154436,
+          "mode": "list",
+          "cachedResultName": "reviews_log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XhZ6H2ujFIT7wAtPZxToZoQpEdqeB3zVS3_ywO_S2bc/edit#gid=620154436"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "platform": "={{ $json.platform }}",
+            "reviewer": "={{ $json.reviewer }}",
+            "review_date": "={{ $json.review_date }}",
+            "llm_score": "={{ $json.llm_score }}",
+            "review_text": "={{ $json.review_text }}",
+            "sentiment": "={{ $json.sentiment }}",
+            "key_issue": "={{ $json.key_issue }}",
+            "requires_response": "={{ $json.requires_response }}",
+            "review_id": "={{ $json.review_id }}",
+            "timestamp": "={{ new Date().toISOString() }}",
+            "hotel_name": "={{ $json.hotel_name }}",
+            "rating": "={{ $json.rating }}",
+            "source_url": "={{ $json.source_url }}",
+            "review_fingerprint": "={{ $json.review_text.substring(0, 100) }}"
+          },
+          "matchingColumns": [
+            "review_fingerprint"
+          ],
+          "schema": [
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "hotel_name",
+              "displayName": "hotel_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "platform",
+              "displayName": "platform",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "reviewer",
+              "displayName": "reviewer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "review_date",
+              "displayName": "review_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "llm_score",
+              "displayName": "llm_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "review_text",
+              "displayName": "review_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sentiment",
+              "displayName": "sentiment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "key_issue",
+              "displayName": "key_issue",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "requires_response",
+              "displayName": "requires_response",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "review_id",
+              "displayName": "review_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "suggested_response",
+              "displayName": "suggested_response",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "rating",
+              "displayName": "rating",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "source_url",
+              "displayName": "source_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "review_fingerprint",
+              "displayName": "review_fingerprint",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2288,
+        -352
+      ],
+      "id": "b824d1f3-9ed7-4227-8f6d-aab3a5a9d060",
+      "name": "Log Reviews",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_SHEET_ID",
+          "name": "Google Sheets account name"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a00e8a0e-fc0a-4909-aa08-23c3e013a049",
+              "leftValue": "={{ $json.requires_response }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2640,
+        -352
+      ],
+      "id": "9cd7f2eb-a6c9-413e-b312-736ad7dc15d1",
+      "name": "Is Negative?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "llama-3.1-8b-instant"
+            },
+            {
+              "name": "messages",
+              "value": "={{ [{\n  \"role\": \"system\",\n  \"content\": \"You are a professional customer service manager for \" + $json.hotel_name + \" in Tunis, Tunisia. You write short, empathetic responses to guest reviews.\"\n},\n{\n  \"role\": \"user\",\n  \"content\": \"Write a response to this guest review. Rules:\\n1. Write ONLY in the EXACT same language as the review - do not mix languages\\n2. Do NOT include any language label or prefix\\n3. Maximum 60 words\\n4. No placeholders like [name] or [contact]\\n5. Acknowledge the specific issue: \" + $json.key_issue + \"\\n6. End by inviting them to contact us\\n7. Write as the hotel directly\\n\\nReview language clue - Platform: \" + $json.platform + \"\\nReview: \" + $json.review_text\n}] }}"
+            }
+          ]
+        },
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 500
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2864,
+        -512
+      ],
+      "id": "b0d5f52c-4f8b-4427-87e4-6107a712ec4a",
+      "name": "Generate Response",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "3zvMWISr8glm7diG",
+          "name": "Bearer Auth account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "35da6ab8-9083-44d2-9410-82a4dec996e9",
+              "name": "suggested_response",
+              "value": "={{ $json.choices[0].message.content.replace(/\\[.*?\\]/g, '').trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "7b724589-9508-4ea0-97aa-828919a151e3",
+              "name": "=review_id",
+              "value": "={{ $('Extract Sentiment').item.json.hotel_name }}",
+              "type": "string"
+            },
+            {
+              "id": "7931c51b-e05b-4618-baeb-3e340b1424ef",
+              "name": "hotel_name",
+              "value": "={{ $('Has New Reviews?').item.json.hotel_name }}",
+              "type": "string"
+            },
+            {
+              "id": "69ed8fa6-3571-4120-9599-89ab1ff0781c",
+              "name": "platform",
+              "value": "={{ $('Is Negative?').item.json.platform }}",
+              "type": "string"
+            },
+            {
+              "id": "85e59714-b00b-4169-a4ce-a164f853c9da",
+              "name": "reviewer",
+              "value": "={{ $('Is Negative?').item.json.reviewer }}",
+              "type": "string"
+            },
+            {
+              "id": "28528cab-fb05-47ac-b4a3-f6bebfd6b1ac",
+              "name": "review_text",
+              "value": "={{ $('Is Negative?').item.json.review_text }}",
+              "type": "string"
+            },
+            {
+              "id": "983450b0-8449-4744-964a-d3abe7149d26",
+              "name": "review_date",
+              "value": "={{ $('Is Negative?').item.json.review_date }}",
+              "type": "string"
+            },
+            {
+              "id": "ad021e5d-e57a-472a-b47e-78e73eb23210",
+              "name": "sentiment",
+              "value": "={{ $('Is Negative?').item.json.sentiment }}",
+              "type": "string"
+            },
+            {
+              "id": "be498ffd-8055-4660-9b35-60cf6eb357ac",
+              "name": "key_issue",
+              "value": "={{ $('Is Negative?').item.json.key_issue }}",
+              "type": "string"
+            },
+            {
+              "id": "3da266ed-60f1-4676-9276-1b41cb640f30",
+              "name": "llm_score",
+              "value": "={{ $('Is Negative?').item.json.llm_score }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3024,
+        -512
+      ],
+      "id": "0a246255-98d0-462c-a4a3-999f1cc362f3",
+      "name": "Extract Response"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1XhZ6H2ujFIT7wAtPZxToZoQpEdqeB3zVS3_ywO_S2bc",
+          "mode": "list",
+          "cachedResultName": "Hotel Reputation Intelligence",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XhZ6H2ujFIT7wAtPZxToZoQpEdqeB3zVS3_ywO_S2bc/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 620154436,
+          "mode": "list",
+          "cachedResultName": "reviews_log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XhZ6H2ujFIT7wAtPZxToZoQpEdqeB3zVS3_ywO_S2bc/edit#gid=620154436"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "review_id": "={{ $json.review_id }}",
+            "suggested_response": "={{ $json.suggested_response }}",
+            "platform": "={{ $json.platform }}",
+            "reviewer": "={{ $json.reviewer }}",
+            "review_text": "={{ $json.review_text }}",
+            "review_date": "={{ $json.review_date }}",
+            "llm_score": "={{ $json.llm_score }}",
+            "sentiment": "={{ $json.sentiment }}",
+            "key_issue": "={{ $json.key_issue }}",
+            "hotel_name": "={{ $json.hotel_name }}",
+            "source_url": "={{ $json.source_url }}",
+            "rating": "={{ $json.rating }}",
+            "timestamp": "={{ new Date().toISOString() }}",
+            "requires_response": "={{ $json.requires_response }}"
+          },
+          "matchingColumns": [
+            "review_id"
+          ],
+          "schema": [
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "hotel_name",
+              "displayName": "hotel_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "platform",
+              "displayName": "platform",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "reviewer",
+              "displayName": "reviewer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "review_date",
+              "displayName": "review_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "llm_score",
+              "displayName": "llm_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "review_text",
+              "displayName": "review_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sentiment",
+              "displayName": "sentiment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "key_issue",
+              "displayName": "key_issue",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "requires_response",
+              "displayName": "requires_response",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "review_id",
+              "displayName": "review_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "suggested_response",
+              "displayName": "suggested_response",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "rating",
+              "displayName": "rating",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "source_url",
+              "displayName": "source_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        3152,
+        -512
+      ],
+      "id": "4054234b-6631-4e4c-a962-a0866fd26a82",
+      "name": "Update Response in Log",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_SHEET_ID",
+          "name": "Google Sheets account name"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "YOUR_SLACK_WEBHOOK_URL",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "={{ \"🚨 *Review Alert — \" + $json.hotel_name + \"*\\n\\n\" + \"🌐 *Platform:* \" + $json.platform + \"\\n\" + \"⭐ *Rating:* \" + ($json.rating || 'N/A') + \" | 🤖 *LLM Score:* \" + $json.llm_score + \"/5\\n\" + \"👤 *Reviewer:* \" + ($json.reviewer || 'Anonymous') + \"\\n\" + \"📅 *Date:* \" + ($json.review_date || 'Unknown') + \"\\n\" + \"🔍 *Key Issue:* \" + ($json.key_issue || 'N/A') + \"\\n\\n\" + \"💬 *Review:*\\n\" + $json.review_text + \"\\n\\n\" + \"📊 *Sentiment:* \" + $json.sentiment.toUpperCase() + \"\\n\\n\" + \"✍️ *Suggested Response:*\\n\" + $json.suggested_response + \"\\n\\n\" + \"🔗 *Source:* \" + ($json.source_url || $json.platform) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3312,
+        -512
+      ],
+      "id": "7172b55a-70ce-4d1e-8109-8237939ae3af",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1XhZ6H2ujFIT7wAtPZxToZoQpEdqeB3zVS3_ywO_S2bc",
+          "mode": "list",
+          "cachedResultName": "Hotel Reputation Intelligence",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XhZ6H2ujFIT7wAtPZxToZoQpEdqeB3zVS3_ywO_S2bc/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 620154436,
+          "mode": "list",
+          "cachedResultName": "reviews_log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XhZ6H2ujFIT7wAtPZxToZoQpEdqeB3zVS3_ywO_S2bc/edit#gid=620154436"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1680,
+        -688
+      ],
+      "id": "ff04cb08-5df3-44b2-b686-d774144d8220",
+      "name": "Read Logged IDs",
+      "executeOnce": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_SHEET_ID",
+          "name": "Google Sheets account name"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2128,
+        -640
+      ],
+      "id": "0f527a3b-be4e-44a2-91b2-1ba545f4012e",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2832,
+        -224
+      ],
+      "id": "ee96d6f6-2c36-4e44-afea-67d3ee3c85bc",
+      "name": "positive"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1XhZ6H2ujFIT7wAtPZxToZoQpEdqeB3zVS3_ywO_S2bc",
+          "mode": "list",
+          "cachedResultName": "Hotel Reputation Intelligence",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XhZ6H2ujFIT7wAtPZxToZoQpEdqeB3zVS3_ywO_S2bc/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 764198908,
+          "mode": "list",
+          "cachedResultName": "web_mentions_log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XhZ6H2ujFIT7wAtPZxToZoQpEdqeB3zVS3_ywO_S2bc/edit#gid=764198908"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "timestamp": "={{ $json.timestamp }}",
+            "review_id": "={{ $json.review_id }}",
+            "hotel_name": "={{ $json.hotel_name }}",
+            "platform": "={{ $json.platform }}",
+            "source_url": "={{ $json.source_url }}",
+            "title": "={{ $json.platform }}",
+            "review_text": "={{ $json.review_text }}",
+            "sentiment": "={{ $json.sentiment }}",
+            "key_issue": "={{ $json.key_issue }}",
+            "llm_score": "={{ $json.llm_score }}",
+            "requires_response": "={{ $json.requires_response }}"
+          },
+          "matchingColumns": [
+            "review_id"
+          ],
+          "schema": [
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "hotel_name",
+              "displayName": "hotel_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "platform",
+              "displayName": "platform",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source_url",
+              "displayName": "source_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "review_text",
+              "displayName": "review_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sentiment",
+              "displayName": "sentiment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "key_issue",
+              "displayName": "key_issue",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "llm_score",
+              "displayName": "llm_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "requires_response",
+              "displayName": "requires_response",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "review_id",
+              "displayName": "review_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2672,
+        -128
+      ],
+      "id": "9d888258-c01f-4bde-9274-1a2084e149dc",
+      "name": "Log Web Mentions",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_SHEET_ID",
+          "name": "Google Sheets account name"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b550ea92-3612-44fb-a002-6f29a515dac4",
+              "leftValue": "={{ $json.platform }}",
+              "rightValue": "Google Maps",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            },
+            {
+              "id": "e657020c-fc7b-4281-84fe-ab05bf8707b7",
+              "leftValue": "={{ $json.platform }}",
+              "rightValue": "TripAdvisor",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2448,
+        -160
+      ],
+      "id": "a5dc9fad-8dd1-4484-ba40-aa3016beb96c",
+      "name": "Is Web Mention?"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2688,
+        16
+      ],
+      "id": "f541d862-171e-4849-9da2-6e5e28781530",
+      "name": "No Operation, do nothing1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $('Extract Sentiment').all();\nconst now = new Date();\nconst weekNumber = Math.ceil(\n  (Math.floor((now - new Date(now.getFullYear(), 0, 1)) / 86400000) + 1) / 7\n);\nconst weekLabel = now.getFullYear() + '-W' + String(weekNumber).padStart(2, '0');\n\nconst stats = {\n  positive: 0, neutral: 0, negative: 0, total: 0,\n  ratings: [], issues: {}\n};\n\nitems.forEach(item => {\n  const s = item.json.sentiment;\n  stats.total++;\n  if (s === 'positive') stats.positive++;\n  else if (s === 'neutral') stats.neutral++;\n  else if (s === 'negative') stats.negative++;\n  if (item.json.rating) stats.ratings.push(parseFloat(item.json.rating));\n  const issue = item.json.key_issue;\n  if (issue && issue.trim()) {\n    stats.issues[issue] = (stats.issues[issue] || 0) + 1;\n  }\n});\n\nconst avgRating = stats.ratings.length\n  ? (stats.ratings.reduce((a, b) => a + b, 0) / stats.ratings.length).toFixed(1)\n  : null;\n\nconst topIssue = Object.entries(stats.issues)\n  .sort((a, b) => b[1] - a[1])[0]?.[0] || '';\n\nreturn [{\n  json: {\n    week: weekLabel,\n    hotel_name: items[0]?.json.hotel_name || $('Read Hotels').item.json.hotel_name,\n    total_reviews: stats.total,\n    positive: stats.positive,\n    neutral: stats.neutral,\n    negative: stats.negative,\n    avg_rating: avgRating,\n    top_issue: topIssue,\n    run_timestamp: now.toISOString()\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2448,
+        -752
+      ],
+      "id": "36a30149-f42a-4d01-bb34-fcd903859b84",
+      "name": "Aggregate Weekly Stats"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1XhZ6H2ujFIT7wAtPZxToZoQpEdqeB3zVS3_ywO_S2bc",
+          "mode": "list",
+          "cachedResultName": "Hotel Reputation Intelligence",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XhZ6H2ujFIT7wAtPZxToZoQpEdqeB3zVS3_ywO_S2bc/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 123755491,
+          "mode": "list",
+          "cachedResultName": "weekly_digest",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XhZ6H2ujFIT7wAtPZxToZoQpEdqeB3zVS3_ywO_S2bc/edit#gid=123755491"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "week": "={{ $json.week }}",
+            "hotel_name": "={{ $json.hotel_name }}",
+            "total_reviews": "={{ $json.total_reviews }}",
+            "positive": "={{ $json.positive }}",
+            "neutral": "={{ $json.neutral }}",
+            "negative": "={{ $json.negative }}",
+            "avg_rating": "={{ $json.avg_rating }}",
+            "top_issue": "={{ $json.top_issue }}",
+            "run_timestamp": "={{ $json.run_timestamp }}"
+          },
+          "matchingColumns": [
+            "week"
+          ],
+          "schema": [
+            {
+              "id": "week",
+              "displayName": "week",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "hotel_name",
+              "displayName": "hotel_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "total_reviews",
+              "displayName": "total_reviews",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "positive",
+              "displayName": "positive",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "neutral",
+              "displayName": "neutral",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "negative",
+              "displayName": "negative",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "avg_rating",
+              "displayName": "avg_rating",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "top_issue",
+              "displayName": "top_issue",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "run_timestamp",
+              "displayName": "run_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2656,
+        -752
+      ],
+      "id": "07e59839-e8ae-47f0-a638-0479e8b48b37",
+      "name": "Log Weekly Digest",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_SHEET_ID",
+          "name": "Google Sheets account name"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read Hotels",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Hotels": {
+      "main": [
+        [
+          {
+            "node": "If Active?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Active?": {
+      "main": [
+        [
+          {
+            "node": "Has TripAdvisor ID?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Has Place ID?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Review Site Mentions",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch General Mentions",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Inactive Hotels",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Place ID?": {
+      "main": [
+        [
+          {
+            "node": "Fetch Google Reviews",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Lookup Place ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Place ID": {
+      "main": [
+        [
+          {
+            "node": "Extract Place ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Place ID": {
+      "main": [
+        [
+          {
+            "node": "Confidence Check Google",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Place ID": {
+      "main": [
+        [
+          {
+            "node": "Prepare Google Fetch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Google Fetch": {
+      "main": [
+        [
+          {
+            "node": "Fetch Google Reviews",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Google Reviews": {
+      "main": [
+        [
+          {
+            "node": "Split Google Reviews",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confidence Check Google": {
+      "main": [
+        [
+          {
+            "node": "Save Place ID",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Hotel Not Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has TripAdvisor ID?": {
+      "main": [
+        [
+          {
+            "node": "Fetch TripAdvisor Reviews",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Lookup TripAdvisor ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup TripAdvisor ID": {
+      "main": [
+        [
+          {
+            "node": "Extract TripAdvisor ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract TripAdvisor ID": {
+      "main": [
+        [
+          {
+            "node": "Confidence Check TripAdvisor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confidence Check TripAdvisor": {
+      "main": [
+        [
+          {
+            "node": "Save TripAdvisor ID",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Hotel Not Found TA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save TripAdvisor ID": {
+      "main": [
+        [
+          {
+            "node": "Prepare TripAdvisor Fetch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare TripAdvisor Fetch": {
+      "main": [
+        [
+          {
+            "node": "Fetch TripAdvisor Reviews",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch TripAdvisor Reviews": {
+      "main": [
+        [
+          {
+            "node": "Split TripAdvisor Reviews",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Review Site Mentions": {
+      "main": [
+        [
+          {
+            "node": "Extract Review Site Mentions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch General Mentions": {
+      "main": [
+        [
+          {
+            "node": "Extract General Mentions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract General Mentions": {
+      "main": [
+        [
+          {
+            "node": "Merge All Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Review Site Mentions": {
+      "main": [
+        [
+          {
+            "node": "Merge All Sources",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Split TripAdvisor Reviews": {
+      "main": [
+        [
+          {
+            "node": "Merge All Sources",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Split Google Reviews": {
+      "main": [
+        [
+          {
+            "node": "Merge All Sources",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Merge All Sources": {
+      "main": [
+        [
+          {
+            "node": "Normalize Reviews",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Reviews": {
+      "main": [
+        [
+          {
+            "node": "Read Logged IDs",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Filter New Reviews Only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter New Reviews Only": {
+      "main": [
+        [
+          {
+            "node": "Has New Reviews?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has New Reviews?": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Classify Sentiment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Sentiment": {
+      "main": [
+        [
+          {
+            "node": "Extract Sentiment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Sentiment": {
+      "main": [
+        [
+          {
+            "node": "Log Reviews",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Reviews": {
+      "main": [
+        [
+          {
+            "node": "Is Negative?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Is Web Mention?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Aggregate Weekly Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Negative?": {
+      "main": [
+        [
+          {
+            "node": "Generate Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "positive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Response": {
+      "main": [
+        [
+          {
+            "node": "Extract Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Response": {
+      "main": [
+        [
+          {
+            "node": "Update Response in Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Response in Log": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Logged IDs": {
+      "main": [
+        [
+          {
+            "node": "Filter New Reviews Only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Web Mention?": {
+      "main": [
+        [
+          {
+            "node": "Log Web Mentions",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Weekly Stats": {
+      "main": [
+        [
+          {
+            "node": "Log Weekly Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "20657b5e-65b2-4425-8584-ac9ea5dede70",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "22d7ce42a362c816e005d3d8b98fd2026347656f3624cc3c3f6f3780e7e0176e"
+  },
+  "id": "GY1nsDChmVPnECIW",
+  "tags": []
+}
